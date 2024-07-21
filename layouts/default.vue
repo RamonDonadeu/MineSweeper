@@ -1,13 +1,9 @@
 <template>
-    <div class="flex flex-col h-full">
-
-        <body class="grow">
-            <slot class="grow" />
-
-        </body>
-        <AppFooter />
-    </div>
+  <div class="flex flex-col h-full items-center">
+    <body class="grow">
+      <slot class="grow justify-center" />
+    </body>
+    <AppFooter />
+  </div>
 </template>
-<script setup lang="ts">
-
-</script>
+<script setup lang="ts"></script>

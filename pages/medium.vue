@@ -5,9 +5,9 @@
   </div>
 </template>
 <script setup lang="ts">
-const rows = 8;
-const cols = 8;
-const mines = 10;
+const rows = 16;
+const cols = 16;
+const mines = 40;
 
 const minesPosition = generateMinesPosition(rows, cols, mines);
 </script>
