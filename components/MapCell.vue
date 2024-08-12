@@ -1,13 +1,27 @@
 <template>
-  <div class="h-6 w-6 mapCell" :isClicked="isClicked">
-    <img v-if="value === -2" src="/assets/flag.svg" alt="" class="flag" />
+  <div
+    class="h-9 w-9 mapCell"
+    :isClicked="isClicked"
+  >
+    <p v-if="!isClicked && value === -3">
+      ?
+    </p>
+    <img
+      v-if="value === -2"
+      src="/assets/flag.svg"
+      alt=""
+      class="flag"
+    >
     <img
       v-if="isClicked && value === -1"
       src="/assets/mine.svg"
       alt=""
       class="mine"
-    />
-    <p v-else-if="isClicked" :class="'value-' + value">
+    >
+    <p
+      v-else-if="isClicked"
+      :class="'value-' + value"
+    >
       {{ value }}
     </p>
   </div>
@@ -21,7 +35,7 @@ defineProps<{
 <style>
 .mapCell {
   outline: 1px solid black;
-  margin: 0.2rem;
+  margin: 0rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -40,7 +54,7 @@ defineProps<{
 }
 
 .mapCell > p {
-  font-size: 1.1rem;
+  font-size: 1.6rem;
   text-align: center;
   font-weight: bolder;
 }
@@ -82,10 +96,10 @@ defineProps<{
 }
 
 .mine {
-  height: 0.8rem;
+  height: 1.2rem;
 }
 
 .flag {
-  height: 0.8rem;
+  height: 1.2rem;
 }
 </style>

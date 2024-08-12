@@ -1,5 +1,7 @@
 <template>
-  <div style="height: 100dvh;">
+  <div
+    style="height: 100dvh; width: 100dvw"
+  >
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>

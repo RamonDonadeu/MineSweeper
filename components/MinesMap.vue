@@ -1,54 +1,97 @@
 <template>
-  <div>
-    <div>
-      <div>Title</div>
+  <div class="flex flex-col justify-center items-center h-full w-full relative">
+    <div
+      v-if="(gameFinished || gameLost)"
+      class="z-10 absolute w-full h-full flex flex-col justify-center items-center text-4xl mt-14 "
+    >
+      <div
+        v-if="!closedPopup"
+        class="bg-white p-8 rounded-lg absolute flex-col justify-center items-center border-black border-2"
+      >
+        <div class="text-center text-6xl pb-8">
+          <div
+            v-if="!gameLost"
+          >
+            Victory!
+          </div>
+          <div
+            v-if="gameLost"
+          >
+            Game Over
+          </div>
+        </div>
+        <div class="w-full flex flex-col justify-center">
+          <button
+            class=" p-4"
+            @click="() => {
+              $emit('restart');
+            }"
+          >
+            Restart
+          </button>
+          <button
+            class=" p-4"
+          >
+            <router-link to="/">
+              Back to Home
+            </router-link>
+          </button>
+          <button 
+            class=" p-4"
+            @click="() => {
+              closedPopup = true
+            }"
+          >
+            See Map
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="w-full text-3xl py-8">
+      {{ `${difficulty} - ${rows}x${cols} - ${minesPosition.length} mines` }}
+    </div>
+    <div class="grow justify-center flex-col flex pb-16 overflow-auto">
       <div class="flex justify-between">
         <div>
           {{ minesRemaining }}
         </div>
         <div>
-          <div v-on:click="openMap" v-if="clicks === 0" class="cursor-pointer">
+          <div
+            v-if="nClickedCells === 0 && hasMapEmptyCells"
+            class="cursor-pointer"
+            @click="openMap"
+          >
             Open Map
           </div>
         </div>
-      </div>
-    </div>
-    <div v-if="initialized" class="flex flex-col justify-center">
+      </div>      
+      
       <div
-        v-for="rowIndex in rows"
-        :key="'row-' + (rowIndex - 1)"
-        class="flex flex-row"
+        v-if="initialized"
+        class="flex flex-col justify-center overflow-auto"
       >
         <div
-          v-for="colIndex in cols"
-          :key="'col-' + (colIndex - 1)"
-          class="flex flex-col"
+          v-for="rowIndex in rows"
+          :key="'row-' + (rowIndex - 1)"
+          class="flex flex-row"
         >
-          <MapCell
-            :is-clicked="clickedCellsMap[rowIndex - 1][colIndex - 1]"
-            :value="cellsValueMap[rowIndex - 1][colIndex - 1]"
-            v-on:click.right="
-              () => {
-                if (clickedCellsMap[rowIndex - 1][colIndex - 1]) return;
-                if (cellsValueMap[rowIndex - 1][colIndex - 1] === -2) {
-                  cellsValueMap[rowIndex - 1][colIndex - 1] =
-                    calculateCellValue(rowIndex - 1, colIndex - 1);
-                  minesRemaining++;
-                } else {
-                  cellsValueMap[rowIndex - 1][colIndex - 1] = -2;
-                  minesRemaining--;
-                }
-              }
-            "
-            @contextmenu.prevent
-            @click="
-              () => {
-                if (cellsValueMap[rowIndex - 1][colIndex - 1] === -2) return;
+          <div
+            v-for="colIndex in cols"
+            :key="'col-' + (colIndex - 1)"
+            class="flex flex-col"
+          >
+            <MapCell
+              :is-clicked="clickedCellsMap[rowIndex - 1][colIndex - 1]"
+              :value="cellsValueMap[rowIndex - 1][colIndex - 1]"
+              @click.right="rightClick(rowIndex - 1, colIndex - 1)"
+              @contextmenu.prevent
+              @click="() => {
+              
                 clickCell(rowIndex - 1, colIndex - 1);
-                clicks++;
               }
-            "
-          />
+              "
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -59,16 +102,35 @@ const props = defineProps<{
   rows: number;
   cols: number;
   minesPosition: { x: number; y: number }[];
+  difficulty: string;
 }>();
+
 const clickedCellsMap = ref<boolean[][]>([]);
 const cellsValueMap = ref<number[][]>([]);
 const initialized = ref<boolean>(false);
 const minesRemaining = ref<number>(props.minesPosition.length);
 const EMPTY = 0;
 const MINE = -1;
-const clicks = ref<number>(0);
+const nClickedCells = ref<number>(0);
+const gameFinished = computed(() => isGameFinished())
+const gameLost = ref<boolean>(false);
+const closedPopup = ref<boolean>(false);
+const hasMapEmptyCells = computed(() => {
+  return cellsValueMap.value.some((row) => row.some((cell) => cell === 0));
+});
 
-onBeforeMount(() => {
+defineEmits(['restart']);
+
+onMounted(() => {
+  initializeMap();
+});
+
+watch( () => props.minesPosition, () => {
+  reset()
+}, { deep: true });
+
+function initializeMap() {  
+  console.log(props.minesPosition)
   for (let x = 0; x < props.rows; x++) {
     const clickedRow = [];
     const valuesRow = [];
@@ -80,29 +142,42 @@ onBeforeMount(() => {
     cellsValueMap.value.push(valuesRow);
   }
   initialized.value = true;
-});
+}
 
 function clickCell(x: number, y: number) {
+  if (cellsValueMap.value[x][y] === -2) return  
+  if (cellsValueMap.value[x][y] === -3) {
+    cellsValueMap.value[x][y] = calculateCellValue(x, y)
+  }
+  if (clickedCellsMap.value[x][y]) {
+    if (aroundCellIsFlagged(x, y, cellsValueMap.value[x][y])) {
+      clickAdjacentCells(x, y)
+    }
+    return
+  }  
+  if (clickedCellsMap.value[x][y]) return  
   const cellValue = cellsValueMap.value[x][y];
-  clickedCellsMap.value[x][y] = true;
+  clickedCellsMap.value[x][y] = true;  
+  nClickedCells.value++;
   if (cellValue === MINE) {
     showAllMines();
-    console.log("You lost");
+    gameLost.value = true;
   }
   if (cellValue === EMPTY) {
-    clickAdjacentEmptyCells(x, y);
+    clickAdjacentCells(x, y);
     return;
   }
 }
 
 function showAllMines() {
+  console.log(props.minesPosition)
   props.minesPosition.forEach(({ x, y }) => {
     cellsValueMap.value[x][y] = -1;
     clickedCellsMap.value[x][y] = true;
   });
 }
-function clickAdjacentEmptyCells(x: number, y: number) {
-  const adjacentCellsClicked: { x: number; y: number }[] = [];
+
+function clickAdjacentCells(x: number, y: number) {
   for (
     let i = x - 1 < 0 ? 0 : x - 1;
     i <= (x + 1 >= props.rows ? props.rows - 1 : x + 1);
@@ -113,18 +188,11 @@ function clickAdjacentEmptyCells(x: number, y: number) {
       j <= (y + 1 >= props.cols ? props.cols - 1 : y + 1);
       j++
     ) {
-      if (
-        cellsValueMap.value[i][j] === 0 &&
-        clickedCellsMap.value[i][j] === false
-      ) {
-        adjacentCellsClicked.push({ x: i, y: j });
+      if(cellsValueMap.value[i][j] !== -2 && !clickedCellsMap.value[i][j]) {
+        clickCell(i,j)
       }
-      clickedCellsMap.value[i][j] = true;
     }
   }
-  adjacentCellsClicked.forEach((cell) => {
-    clickAdjacentEmptyCells(cell.x, cell.y);
-  });
 }
 function calculateCellValue(x: number, y: number) {
   if (isMine(x, y)) return -1;
@@ -168,6 +236,63 @@ function openMap() {
   }
   clickedCellsMap.value[x][y];
   clickCell(x, y);
-  clicks.value++;
+}
+// const remainingTiles = () => {
+//   let tilesClicked = props.rows*props.cols
+//   clickedCellsMap.value.forEach((row) => {
+//     row.forEach((cell) => {
+//     if(cell) tilesClicked--
+//   })
+//   })
+//   return tilesClicked
+// }
+
+function isGameFinished() {
+  return nClickedCells.value + props.minesPosition.length === props.rows * props.cols
+}
+
+function rightClick(x: number, y: number) {
+  if (clickedCellsMap.value[x][y]) return;
+  if (cellsValueMap.value[x][y] === -2) {
+    cellsValueMap.value[x][y] = -3;    
+    minesRemaining.value++;
+  }
+  else if (cellsValueMap.value[x][y] === -3) {
+    cellsValueMap.value[x][y] =
+      calculateCellValue(x, y);
+  } else {
+    cellsValueMap.value[x][y] = -2;
+    minesRemaining.value--;
+  }
+}
+
+function aroundCellIsFlagged(x: number, y: number, minesAround: number) {
+  let flagged = 0;
+  for (
+    let i = x - 1 < 0 ? 0 : x - 1;
+    i <= (x + 1 >= props.rows ? props.rows - 1 : x + 1);
+    i++
+  ) {
+    for (
+      let j = y - 1 < 0 ? 0 : y - 1;
+      j <= (y + 1 >= props.cols ? props.cols - 1 : y + 1);
+      j++
+    ) {
+      if (cellsValueMap.value[i][j] === -2) {
+        flagged++;
+      }
+    }
+  }
+  return flagged === minesAround;
+}
+
+function reset() {
+  clickedCellsMap.value = [];
+  cellsValueMap.value = [];
+  initialized.value = false;
+  minesRemaining.value = props.minesPosition.length;
+  nClickedCells.value = 0;
+  gameLost.value = false;
+  initializeMap();
 }
 </script>

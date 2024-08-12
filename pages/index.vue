@@ -1,7 +1,7 @@
 <template>
-    <div>
-        <h1 class="text-7xl pb-10">MineSweeper</h1>
-        <div class="difficultySelector">
+    <div class="flex flex-col justify-center">
+        <h1 class="text-7xl pb-10 text-center">MineSweeper</h1>
+        <div class="difficultySelector text-center">
             <h2 class="difficultySelector__title text-3xl">Difficulty Selector</h2>
             <div class="difficultySelector__buttons flex flex-col">
                 <DifficultyButton label="Easy" to="easy" />
